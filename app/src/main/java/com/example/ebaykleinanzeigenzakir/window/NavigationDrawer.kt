@@ -28,12 +28,12 @@ fun getMenuItems(viewModel: EbayViewModel): List<MenuItem> {
 
     return listOf<MenuItem>(
         MenuItem("Start", "main", Icons.Default.Home) {viewModel.getMain()},
-        MenuItem("Suche", "search", Icons.Default.Search) {},
-        MenuItem("Nachricht", "conversation", Icons.Default.Email) {},
+        MenuItem("Suche", "search", Icons.Default.Search) {viewModel.getSearchResult()},
+        MenuItem("Nachricht", "conversation", Icons.Default.Email) {viewModel.getConversation()},
         MenuItem("Favoriten", "favorites", Icons.Default.Star) {},
         MenuItem("Anzeige aufgeben", "publish", Icons.Default.Send) {},
-        MenuItem("Meine Anzeigen", "myadd", Icons.Default.Person) {},
-        MenuItem("Einstellung", "setting", Icons.Default.Settings) {},
+        MenuItem("Meine Anzeigen", "myadd", Icons.Default.Person) {viewModel.getMyAdd()},
+        MenuItem("Einstellung", "setting", Icons.Default.Settings) {viewModel.getSetting()},
         MenuItem("Über uns", "aboutus", Icons.Default.Face) {},
     )
 }
@@ -46,19 +46,20 @@ fun NavigationDrawer(
     dynamicColor: Boolean,
     switchDynamicColor: () -> Unit,
     loginState: LoginData?,
-    logout : () -> Unit,
-    viewModel: EbayViewModel ,
+    logout: () -> Unit,
+    viewModel: EbayViewModel,
+    gestureEnabled: Boolean,
     content: @Composable () -> Unit
 ) {
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-
     val menuItems = getMenuItems(viewModel)
+
 
     ModalDrawer(
         drawerBackgroundColor = MaterialTheme.colorScheme.surface, drawerState = navDrawerState,
+        gesturesEnabled = gestureEnabled,
         drawerContent = {
-
 
             DrawerHeader(navigateTo,loginState)
 

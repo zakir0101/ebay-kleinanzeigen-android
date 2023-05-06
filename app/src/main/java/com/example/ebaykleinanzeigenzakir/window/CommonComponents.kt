@@ -1,11 +1,13 @@
 package com.example.ebaykleinanzeigenzakir
 
+
+import com.google.accompanist.placeholder.placeholder
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -13,18 +15,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.ebaykleinanzeigenzakir.window.Toggler
 import com.example.ebaykleinanzeigenzakir.window.search.FilterText
+import com.google.accompanist.placeholder.PlaceholderHighlight
+import com.google.accompanist.placeholder.fade
+
 
 
 @Composable
@@ -47,13 +57,16 @@ fun WhiteCardWithPadding(modifier: Modifier = Modifier, function: @Composable ()
 }
 
 
-
 @Composable
 fun DarkCardWithPadding(modifier: Modifier = Modifier, function: @Composable () -> Unit) {
     Card(
         modifier
             .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(
+                3.dp
+            )
+        ),
         shape = RectangleShape
     ) {
         Column(
@@ -68,11 +81,10 @@ fun DarkCardWithPadding(modifier: Modifier = Modifier, function: @Composable () 
 }
 
 
-
 @Composable
-fun OutlinedPrimaryButtonWithIcon(text: String, icon: ImageVector, modifier: Modifier = Modifier) {
+fun OutlinedPrimaryButtonWithIcon(text: String, icon: ImageVector, modifier: Modifier = Modifier,onClick: Toggler = {}) {
     OutlinedButton(
-        onClick = { },
+        onClick = { onClick()},
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = MaterialTheme.colorScheme.primary
         ),
@@ -92,7 +104,7 @@ fun OutlinedPrimaryButtonWithIcon(text: String, icon: ImageVector, modifier: Mod
 
 
 @Composable
-fun PrimaryButtonWithIcon(text: String, icon: ImageVector, modifier: Modifier = Modifier) {
+fun PrimaryButtonWithIcon(text: String, icon: ImageVector, modifier: Modifier = Modifier,onClick: Toggler={}) {
     Button(
         onClick = { },
         colors = ButtonDefaults.outlinedButtonColors(
@@ -115,14 +127,23 @@ fun PrimaryButtonWithIcon(text: String, icon: ImageVector, modifier: Modifier = 
 }
 
 
-
 @Composable
-fun PrimaryButton(text: String,onClick: Toggler = {} ,modifier: Modifier = Modifier, textModifier: Modifier = Modifier) {
+fun PrimaryButton(
+    text: String,
+    onClick: Toggler = {},
+    modifier: Modifier = Modifier,
+    textModifier: Modifier = Modifier,
+    isDisabled: () -> Boolean = { false}
+) {
+    val enabled = ! isDisabled()
     Button(
         onClick = { onClick() },
+        enabled = enabled,
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = MaterialTheme.colorScheme.onPrimary,
-            containerColor = MaterialTheme.colorScheme.primary
+            containerColor = MaterialTheme.colorScheme.primary,
+            disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
         shape = RoundedCornerShape(14),
@@ -138,7 +159,6 @@ fun PrimaryButton(text: String,onClick: Toggler = {} ,modifier: Modifier = Modif
 
     }
 }
-
 
 
 @Composable
@@ -190,11 +210,8 @@ fun EbayDropDown(
 }
 
 
-
-
-
 @Composable
-fun EbaySwitch(checked:Boolean, setChecked : ()->Unit) {
+fun EbaySwitch(checked: Boolean, setChecked: () -> Unit) {
 
     Switch(
         checked = checked,
@@ -211,7 +228,6 @@ fun EbaySwitch(checked:Boolean, setChecked : ()->Unit) {
     )
 
 }
-
 
 
 @Composable
@@ -248,7 +264,7 @@ fun FilterHeader(onClick: Toggler) {
             Modifier
                 .fillMaxHeight()
                 .width(1.dp)
-                .padding(0.dp, 5.dp),color = MaterialTheme.colorScheme.onPrimary
+                .padding(0.dp, 5.dp), color = MaterialTheme.colorScheme.onPrimary
         )
         Text(
             text = "3.000 Ergebnisse",
@@ -260,10 +276,8 @@ fun FilterHeader(onClick: Toggler) {
 }
 
 
-
-
 @Composable
-fun ConversationImage(size : Int  = 55) {
+fun ConversationImage(size: Int = 55, conversation: Conversation) {
     Box(
         modifier = Modifier
             .background(
@@ -271,26 +285,53 @@ fun ConversationImage(size : Int  = 55) {
                 RoundedCornerShape(50)
             )
             .size(size.dp)
-            .padding(12.dp)
+        , contentAlignment = Alignment.Center
+
+
+    ) {
+        var imageLoaded by remember { mutableStateOf(false) }
+        AsyncImage(model = ImageRequest.Builder(LocalContext.current)
+            .data(conversation.adImage?.replace("{imageId}","2") ).crossfade(true).build()
+            , contentDescription = null
+            ,modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(50)),
+            contentScale = ContentScale.Crop
+            , onSuccess = {imageLoaded = true}
+
+        )
+        if (!imageLoaded) {
+            Icon(
+                contentDescription = null,
+                modifier = Modifier,
+                tint = MaterialTheme.colorScheme.onBackground,
+                imageVector = Icons.Default.PhotoCamera
+            )
+        }
+    }
+}
+
+
+@Composable
+fun ConversationImagePlaceholder(size: Int = 55) {
+    Box(
+        modifier = Modifier
+            .background(
+                MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
+                RoundedCornerShape(50)
+            )
+            .size(size.dp)
+        , contentAlignment = Alignment.Center
 
 
     ) {
         Icon(
-            contentDescription = null,
-            modifier = Modifier
-                .size((size - 12).dp)
-                .background(MaterialTheme.colorScheme.background),
+                contentDescription = null,
+                modifier = Modifier,
+                tint = MaterialTheme.colorScheme.onBackground,
+                imageVector = Icons.Default.PhotoCamera
+            )
 
-            tint = MaterialTheme.colorScheme.onBackground,
-            imageVector = Icons.Default.PhotoCamera
-
-        )
     }
-
 }
-
-
-
 
 @Composable
 fun HisInitialCircle(text: String = "k", size: String = "sm", modifier: Modifier = Modifier) {
@@ -322,9 +363,6 @@ fun HisInitialCircle(text: String = "k", size: String = "sm", modifier: Modifier
 
     }
 }
-
-
-
 
 
 @Composable
@@ -395,6 +433,17 @@ fun LargeLightText(text: String) {
 
 
 @Composable
+fun EbayPlaceholder(modifier: Modifier) {
+    Text(
+        "", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+        style = MaterialTheme.typography.bodyLarge,
+        modifier = modifier.placeholder(visible = true,color=MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    highlight = PlaceholderHighlight.fade(MaterialTheme.colorScheme.surface))
+    )
+}
+
+
+@Composable
 fun SmallDarkText(text: String) {
     Text(
         text, color = MaterialTheme.colorScheme.onSurface,
@@ -402,6 +451,17 @@ fun SmallDarkText(text: String) {
     )
 }
 
+
+@Composable
+fun SmallDarkTextPlaceholder(modifier: Modifier) {
+    Text(
+        "", color = MaterialTheme.colorScheme.onSurface,
+        style = MaterialTheme.typography.labelLarge
+        , modifier = modifier.placeholder(visible = true,color=MaterialTheme.colorScheme.onSurface,
+            highlight = PlaceholderHighlight.fade(MaterialTheme.colorScheme.surface))
+
+    )
+}
 
 @Composable
 fun SmallLightIcon(icon: ImageVector) {

@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package com.example.ebaykleinanzeigenzakir
+package com.example.ebaykleinanzeigenzakir.window.main
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -17,17 +17,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.ebaykleinanzeigenzakir.EbayViewModel
+import com.example.ebaykleinanzeigenzakir.MainItemData
 
 
 @Composable
-fun MainWindow(navController: NavHostController, viewModel: EbayViewModel ) {
+fun MainWindow(navController: NavHostController, viewModel: EbayViewModel) {
     val mainState by viewModel.mainState.collectAsState()
-//    viewModel.getMain()
     LazyVerticalGrid(
 
         columns = GridCells.Adaptive(minSize = 128.dp),
-        contentPadding = PaddingValues(20.dp,20.dp,20.dp,20.dp),
+        contentPadding = PaddingValues(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
 
@@ -44,7 +44,12 @@ fun MainWindow(navController: NavHostController, viewModel: EbayViewModel ) {
         }
         if(mainState  != null) {
             item(span = { GridItemSpan(2) }) {
-                GalleryList(navController, mainState!!.galerie)
+                GalleryList(navController, mainState!!.galerie ,viewModel)
+            }
+        }else {
+            item(span = { GridItemSpan(2) }) {
+                GalleryListPlaceholder()
+
             }
         }
         item(span = { GridItemSpan(2) })  {
@@ -58,30 +63,36 @@ fun MainWindow(navController: NavHostController, viewModel: EbayViewModel ) {
         }
         if(mainState  != null) {
             items(mainState!!.main) {
-                MainItem(navController, it)
+                MainItem(navController, it,viewModel)
+            }
+        }else{
+            items(14){
+                MainItemPlaceholder()
             }
         }
     }
 }
 
 
-
-
-
 @Composable
-fun GalleryList(navController: NavHostController, galleryList: List<MainItemData>?) {
+fun GalleryList(
+    navController: NavHostController,
+    galleryList: List<MainItemData>?,
+    viewModel: EbayViewModel
+) {
     LazyRow(
         contentPadding = PaddingValues(0.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
 
     ) {
         items(galleryList!!) {
-            MainItem(navController, it)
+            MainItem(navController, it, viewModel)
         }
 
     }
 
 }
+
 //
 //@Composable
 //fun MainList() {

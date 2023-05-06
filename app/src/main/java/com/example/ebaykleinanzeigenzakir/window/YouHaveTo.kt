@@ -1,8 +1,10 @@
 package com.example.ebaykleinanzeigenzakir.window
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -11,17 +13,32 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.ebaykleinanzeigenzakir.EbayViewModel
 import com.example.ebaykleinanzeigenzakir.PrimaryButton
+import com.example.ebaykleinanzeigenzakir.R
 import com.example.ebaykleinanzeigenzakir.ui.theme.EbayKleinanzeigenZakirTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.lang.Thread.sleep
 
+
+
+
+
+@Composable
+fun EbayLogo() {
+Box(modifier = Modifier.fillMaxSize(),
+    contentAlignment = Alignment.Center){
+    Image(painter = painterResource(id = R.drawable.ebay_logo), contentDescription = null,
+            modifier = Modifier.fillMaxWidth(1f).scale(2f))
+}
+}
 
 @Composable
 fun YouHaveToConnect(viewModel: EbayViewModel) {
@@ -54,7 +71,9 @@ fun YouHaveToLogin(navController: NavController) {
                 "you have to login", color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.bodyMedium
             )
-            PrimaryButton(text = "Login", onClick = { navController.navigate("login") })
+            PrimaryButton(
+                text = "Login",
+                onClick = { navController.navigate("login") }) { return@PrimaryButton false }
 
         }
     }

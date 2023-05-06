@@ -7,6 +7,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.rememberPagerState
 
@@ -29,6 +30,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.ebaykleinanzeigenzakir.*
 import com.example.ebaykleinanzeigenzakir.ui.theme.EbayKleinanzeigenZakirTheme
+import com.example.ebaykleinanzeigenzakir.window.Toggler
 
 import com.example.ebaykleinanzeigenzakir.window.search.SearchItem
 import kotlinx.coroutines.launch
@@ -41,7 +43,22 @@ fun AddWindow(
     viewModel: EbayViewModel
 ) {
 
+    val addState by viewModel.addWindowState.collectAsState()
 
+    if (addState == null)
+        AddWindowPlaceholder()
+    else
+        AddWindowContent(navController, viewModel, addState!!)
+
+}
+
+
+@Composable
+fun AddWindowContent(
+    navController: NavHostController,
+    viewModel: EbayViewModel,
+    addState: AddWindowData
+) {
     var appbarColorAlpha by remember { mutableStateOf(1f) }
     val pagerHeight = 250
     val lazyColumnState = rememberLazyListState()
@@ -54,16 +71,16 @@ fun AddWindow(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AddWindowTopAppBar(appbarColorAlpha, navController,viewModel.switchDarkMode,viewModel.darkMode)
+        AddWindowTopAppBar(appbarColorAlpha, navController, viewModel)
 
         Scaffold(
-            bottomBar = { BottomButtonBar() },
+            bottomBar = { BottomButtonBar(  { navController.navigate("sendMessage")} ) },
             containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
             modifier = Modifier
                 .zIndex(0.5f)
                 .fillMaxSize()
-        ) {
-            val whatever = it
+        ) { padding ->
+            val whatever = padding
 
             LazyColumn(
                 Modifier
@@ -77,16 +94,16 @@ fun AddWindow(
                             .height(pagerHeight.dp)
                     ) {
                         val pagerState = rememberPagerState()
-                        val pageCount = 4
+                        val pageCount = addState.images_url.size
 
-                        ImagePager(pageCount, pagerState, pagerHeight)
+                        ImagePager(pageCount, pagerState, pagerHeight, addState.images_url)
                         PageIndecator(pageCount, pagerState)
                         PageNavigatior(pageCount, pagerState)
                     }
 
                 }
                 item {
-                    AddDetailCard()
+                    AddDetailCard(addState)
                     Spacer(modifier = Modifier.height(10.dp))
                 }
                 item {
@@ -96,7 +113,7 @@ fun AddWindow(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             LargeDarkText(text = "Art")
-                            SmallDarkText(text = "Samsung Tablet")
+                            SmallDarkText(text = addState.art)
                         }
                     }
                     Spacer(modifier = Modifier.height(10.dp))
@@ -104,7 +121,7 @@ fun AddWindow(
                 item {
                     WhiteCardWithPadding {
                         Text(
-                            text = "ich verkaufe dieses Buch cover von Samsung\nOriginal\nFür Galaxy Tab 23456\nMit zwei Standfunktionen\n\nETF-3355\n\nNeu und ungeöffnet",
+                            text = addState.description.trim(),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -112,7 +129,7 @@ fun AddWindow(
                     Spacer(modifier = Modifier.height(10.dp))
                 }
                 item {
-                    UserDetailCard(navController)
+                    UserDetailCard(navController, addState.user, viewModel)
                     Spacer(modifier = Modifier.height(10.dp))
 
                 }
@@ -121,37 +138,46 @@ fun AddWindow(
                         LargeBolderTitleText(text = "Ähnliche Anzeigen")
                     }
                 }
-                items(6) {
-                    SearchItem(navController = navController)
+                items(items = addState.other_add_similar) {
+                    SearchItem(navController = navController, item = it, viewModel = viewModel)
                 }
+
 
             }
 
         }
     }
+
+
 }
 
 @Composable
-fun BottomButtonBar() {
+internal fun BottomButtonBar(onClick: Toggler) {
     Row(
         Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceColorAtElevation(5.dp))
             .padding(vertical = 5.dp, horizontal = 10.dp)
     ) {
-        OutlinedPrimaryButtonWithIcon("Nachricht", icon = Icons.Default.Chat, Modifier.weight(1f))
+        OutlinedPrimaryButtonWithIcon(
+            "Nachricht",
+            icon = Icons.Default.Chat,
+            Modifier.weight(1f),
+            onClick ={onClick()}
+        )
         Spacer(Modifier.width(5.dp))
         PrimaryButtonWithIcon(
             text = "Angebote Machen",
             icon = Icons.Default.EuroSymbol,
-            Modifier.weight(1f)
+            Modifier.weight(1f),
+            onClick ={onClick}
         )
     }
 }
 
 
 @Composable
-fun UserDetailCard(navController: NavHostController) {
+fun UserDetailCard(navController: NavHostController, user: User, viewModel: EbayViewModel) {
     val scope = rememberCoroutineScope()
     WhiteCardWithPadding() {
         LargeBolderTitleText("Anbieter")
@@ -165,19 +191,27 @@ fun UserDetailCard(navController: NavHostController) {
                 .fillMaxWidth()
                 .height(140.dp)
                 .clickable {
-                    scope.launch { navController.navigate("user") }
+                    scope.launch {
+                        viewModel.activeUserLink = user.user_link
+                        viewModel.getUserData()
+                        navController.navigate("user")
+                    }
                 }
                 .padding(vertical = 10.dp)
 
         ) {
-            HisInitialCircle(text = "NL", size = "lg", modifier = Modifier)
+            HisInitialCircle(
+                text = user.user_name.substring(0 until 1),
+                size = "lg",
+                modifier = Modifier
+            )
             Column(
                 Modifier.padding(start = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                MediumBoldTitle(text = "Nesrin Ünal")
-                MediumLightText(text = "Private Anbeiter")
-                MediumLightText(text = "Aktiv seit 28.03.2020")
+                MediumBoldTitle(text = user.user_name)
+                MediumLightText(text = user.user_type)
+                MediumLightText(text = user.active_since)
                 FollowButton()
             }
             Spacer(modifier = Modifier.weight(1f))
@@ -185,7 +219,7 @@ fun UserDetailCard(navController: NavHostController) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Badge(Modifier, MaterialTheme.colorScheme.primary) {
                         Text(
-                            "37",
+                            user.user_ad_number.replace("Anzeigen online", "").trim(),
                             Modifier,
                             MaterialTheme.colorScheme.onPrimary,
                             style = MaterialTheme.typography.titleMedium
@@ -203,13 +237,17 @@ fun UserDetailCard(navController: NavHostController) {
             Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
         )
-
-        RaitingIconWithText(Icons.Rounded.Mood, "Zufriedenheit: TOP")
-        Spacer(modifier = Modifier.height(6.dp))
-        RaitingIconWithText(Icons.Filled.Chat, "Besonders froundlich")
-        Spacer(modifier = Modifier.height(6.dp))
-        RaitingIconWithText(Icons.Filled.ThumbUp, "Besonders zuverlässig")
-
+        if (user.rating.isNotBlank()) {
+            RaitingIconWithText(Icons.Rounded.Mood, user.rating)
+        }
+        if (user.friendliness.isNotBlank()) {
+            Spacer(modifier = Modifier.height(6.dp))
+            RaitingIconWithText(Icons.Filled.Chat, user.friendliness)
+        }
+        if (user.reliability.isNotBlank()) {
+            Spacer(modifier = Modifier.height(6.dp))
+            RaitingIconWithText(Icons.Filled.ThumbUp, user.reliability)
+        }
 
     }
 
@@ -239,13 +277,13 @@ fun FollowButton() {
 }
 
 @Composable
-fun AddDetailCard() {
+fun AddDetailCard(addState: AddWindowData) {
 
     val tlMedium = MaterialTheme.typography.titleMedium
     val fSize = tlMedium.fontSize.value * 1.15
     WhiteCardWithPadding() {
         Text(
-            text = "Original Samsung Book Cover Ef-BT510 für Galaxy Tab A 2019 10,1",
+            text = addState.title,
             style = tlMedium.copy(fontSize = fSize.sp),
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -254,18 +292,18 @@ fun AddDetailCard() {
             verticalAlignment = Alignment.Bottom
         ) {
             Text(
-                text = " " + "8 $ VB",
+                text = " " + addState.price,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
-            MediumLightText(text = "Versand möglich")
+            MediumLightText(text = addState.shipping)
         }
         Row(
             Modifier, horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.Bottom
         ) {
             SmallLightIcon(Icons.Default.LocationOn)
-            MediumLightText(text = "23453 well der Stadt")
+            MediumLightText(text = addState.location)
             SmallLightIcon(icon = Icons.Default.KeyboardArrowRight)
         }
         Row(
@@ -273,10 +311,10 @@ fun AddDetailCard() {
             verticalAlignment = Alignment.Bottom
         ) {
             SmallLightIcon(Icons.Default.CalendarMonth)
-            MediumLightText(text = "Heute, 22:14")
+            MediumLightText(text = addState.date)
             Spacer(modifier = Modifier.width(15.dp))
             SmallLightIcon(icon = Icons.Default.Visibility)
-            MediumLightText(text = "0")
+            MediumLightText(text = addState.views)
         }
     }
 }

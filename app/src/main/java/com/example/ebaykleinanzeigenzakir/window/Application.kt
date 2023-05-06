@@ -5,10 +5,7 @@ import androidx.compose.material.DrawerValue
 import androidx.compose.material.Scaffold
 import androidx.compose.material.rememberDrawerState
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
@@ -19,13 +16,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.ebaykleinanzeigenzakir.EbayAppbarBoth
 import com.example.ebaykleinanzeigenzakir.EbayViewModel
-import com.example.ebaykleinanzeigenzakir.MainWindow
 import com.example.ebaykleinanzeigenzakir.NavigationDrawer
 import com.example.ebaykleinanzeigenzakir.window.aboutus.AboutUsWindow
 import com.example.ebaykleinanzeigenzakir.window.add.AddWindow
+import com.example.ebaykleinanzeigenzakir.window.add.SendMessage
 import com.example.ebaykleinanzeigenzakir.window.conversation.ConversationWindow
 import com.example.ebaykleinanzeigenzakir.window.conversation.MessageWindow
 import com.example.ebaykleinanzeigenzakir.window.login.LoginWindow
+import com.example.ebaykleinanzeigenzakir.window.main.MainWindow
 import com.example.ebaykleinanzeigenzakir.window.myadd.MyAddWindow
 import com.example.ebaykleinanzeigenzakir.window.publish.PublishWindow
 import com.example.ebaykleinanzeigenzakir.window.search.*
@@ -79,10 +77,24 @@ internal fun Application(viewModel: EbayViewModel) {
     }
 
     val rightDrawerBgColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
+//    val rightDrawerBgColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
     val loginState by viewModel.loginState.collectAsState()
 //    viewModel.isUserLogged()
 
-    PriceDrawer(priceDrawerState, rightDrawerBgColor)
+    var startDist by remember{ mutableStateOf("main")}
+    var gestureEnabled by remember { mutableStateOf(true)}
+
+    if (viewModel.internetConencted && loginState != null) {
+        startDist = "main"
+        gestureEnabled  = true
+    }else if( !viewModel.internetConencted ) {
+        startDist = "internet"
+        gestureEnabled = false
+    }else{
+        startDist = "logo"
+        gestureEnabled = false
+    }
+        PriceDrawer(priceDrawerState, rightDrawerBgColor)
     {
 
         CategoryDrawer(categoryDrawerState, rightDrawerBgColor)
@@ -107,7 +119,8 @@ internal fun Application(viewModel: EbayViewModel) {
                         viewModel.switchDynamicColor,
                         loginState,
                         logout =   { viewModel.logout () ; navDrawerState.toggle(scope) }
-                        ,viewModel = viewModel
+                        ,viewModel = viewModel,
+                        gestureEnabled
                     ) {
 
                         Scaffold(
@@ -120,7 +133,8 @@ internal fun Application(viewModel: EbayViewModel) {
                                     cityDrawerState,
                                     categoryDrawerState,
                                     scrollBehaviorEnter,
-                                    navController, viewModel.darkMode
+                                    navController, viewModel.darkMode,
+                                    viewModel
                                 )
                             }, backgroundColor = rightDrawerBgColor
 
@@ -128,11 +142,9 @@ internal fun Application(viewModel: EbayViewModel) {
                             val i = it
 
 
-                            if (viewModel.internetConencted && loginState != null) {
-
                                 NavHost(
                                     navController = navController,
-                                    startDestination = "main",
+                                    startDestination = startDist,
 
                                     )
 
@@ -140,34 +152,33 @@ internal fun Application(viewModel: EbayViewModel) {
                                     composable("login") { LoginWindow(navController, viewModel) }
                                     composable("main") { MainWindow(navController, viewModel) }
                                     composable("add") { AddWindow(navController, viewModel) }
-                                    composable("user") { UserWindow(navController) }
-                                    composable("search") { SearchWindow(navController) }
-
-
+                                    composable("sendMessage") { SendMessage(navController, viewModel) }
+                                    composable("user") { UserWindow(navController,viewModel) }
+                                    composable("search") { SearchWindow(navController,viewModel) }
                                     composable("conversation") {
-                                        if (loginState!!.is_logged) ConversationWindow(navController)
+                                        if (loginState!!.is_logged) ConversationWindow(navController,viewModel)
                                         else YouHaveToLogin(navController)
                                     }
-                                    composable("message") { MessageWindow(navController) }
+                                    composable("message") { MessageWindow(navController,viewModel) }
                                     composable("favorites") {
                                         if ( loginState!!.is_logged) FavoritesWindow()
                                             else YouHaveToLogin(navController)}
                                     composable("publish") {
-                                        if (loginState!!.is_logged) PublishWindow(navController)
+                                        if (loginState!!.is_logged) PublishWindow(navController,viewModel)
                                         else YouHaveToLogin(navController)
                                     }
                                     composable("myadd") {
-                                        if (loginState!!.is_logged) MyAddWindow(navController)
+                                        if (loginState!!.is_logged) MyAddWindow(navController,viewModel)
                                         else YouHaveToLogin(navController)
                                     }
                                     composable("setting") {
-                                        if (loginState!!.is_logged) SettingWindow()
+                                        if (loginState!!.is_logged) SettingWindow(viewModel)
                                         else YouHaveToLogin(navController)
                                     }
                                     composable("aboutus") { AboutUsWindow() }
-                                }
-                            } else if( !viewModel.internetConencted ) {
-                                YouHaveToConnect(viewModel)
+                                    composable("internet") { YouHaveToConnect(viewModel) }
+                                    composable("logo") { EbayLogo() }
+
                             }
 
                         }
@@ -181,5 +192,6 @@ internal fun Application(viewModel: EbayViewModel) {
         }
     }
 }
+
 
 

@@ -122,7 +122,7 @@ val allCategories:Category = Category(name = "alle Kategorien",
 val deutschland:City = City(name="Deutschland - ",code="0" ,zip = "" )
 
 data class FilterData(
-    val search : String = "",
+    var search : String = "",
     val priceFrom : String = "",
     val priceTo : String = "",
     val anbieter : String = "",
@@ -131,14 +131,14 @@ data class FilterData(
     val paketdient : String = "",
     val activeRange : String = "",
 
-)
+    )
 
 /******************************************
  *           Conversation Window
  ******************************************* */
 data class ConversationWindowData(
     val conversations: List<Conversation>,
-    val _links: Link,
+//    val _links: Link,
     val _meta: Meta
 )
 
@@ -153,7 +153,7 @@ data class Meta(
 
 data class Conversation(
     val adId: String,
-    val adImage: String,
+    val adImage: String? ,
     val adStatus: String,
     val adTitle: String,
     val adType: String,
@@ -175,7 +175,7 @@ data class Message(
     val messageId: String,
     val receiveDate: String,
     val readableDate: String,
-    val textShor: String,
+    val textShort: String,
     val title: String,
     val type: String
 )

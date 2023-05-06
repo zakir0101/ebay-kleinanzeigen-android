@@ -12,7 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -29,10 +28,6 @@ import com.example.ebaykleinanzeigenzakir.EbayViewModel
 import com.example.ebaykleinanzeigenzakir.PrimaryButton
 import com.example.ebaykleinanzeigenzakir.ui.theme.EbayKleinanzeigenZakirTheme
 import com.example.ebaykleinanzeigenzakir.window.publish.getTextFieldColors
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.lang.Thread.sleep
 
 
 @SuppressLint("CoroutineCreationDuringComposition")
@@ -88,7 +83,9 @@ fun LoginWindow(
                 Color.Red else MaterialTheme.colorScheme.primary
             Text(viewModel.parsingStatus, color = textColor)
             Spacer(modifier = Modifier.weight(1f))
-            PrimaryButton(text = "Login", onClick = { viewModel.onCookieSubmit() })
+            PrimaryButton(
+                text = "Login",
+                onClick = { viewModel.onCookieSubmit() }) { return@PrimaryButton false }
         }
 
 

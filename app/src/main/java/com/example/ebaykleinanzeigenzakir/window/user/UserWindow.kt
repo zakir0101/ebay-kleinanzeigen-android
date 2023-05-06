@@ -3,41 +3,62 @@ package com.example.ebaykleinanzeigenzakir.window.user
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Surface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.example.ebaykleinanzeigenzakir.*
-import com.example.ebaykleinanzeigenzakir.ui.theme.EbayKleinanzeigenZakirTheme
 import com.example.ebaykleinanzeigenzakir.window.add.*
 import com.example.ebaykleinanzeigenzakir.window.search.SearchItem
 
-class RatinigItem(val name1: String, val name2: String, val icon: ImageVector)
+class RatingItem(val name1: String, val name2: String, val icon: ImageVector)
 
-fun getRatingData(): List<RatinigItem> {
+fun getRatingData(user: User): List<RatingItem> {
     return listOf(
-        RatinigItem("Top", "ZufriedenHeit", Icons.Filled.Mood),
-        RatinigItem("Besonders", "freundlich", Icons.Filled.ChatBubble),
-        RatinigItem("Besonders", "Zuverlässig", Icons.Filled.ThumbUp),
-        RatinigItem("99%", "Antwortrate", Icons.Filled.Chat),
-        RatinigItem("3h", "Antwortzeit", Icons.Filled.Timer),
-        RatinigItem("3", "Follower", Icons.Filled.Person),
+        RatingItem(user.rating.replace("Zufriedenheit", ""), "ZufriedenHeit", Icons.Filled.Mood),
+        RatingItem(
+            user.friendliness.replace("freundlich", ""),
+            "freundlich",
+            Icons.Filled.ChatBubble
+        ),
+        RatingItem(
+            user.reliability.replace("zuverlässig", ""),
+            "zuverlässig",
+            Icons.Filled.ThumbUp
+        ),
+        RatingItem(user.reply_rate.replace("Antwortrate", ""), "Antwortrate", Icons.Filled.Chat),
+        RatingItem(user.reply_speed.replace("Antwortzeit", ""), "Antwortzeit", Icons.Filled.Timer),
+        RatingItem(user.followers.replace("Follower", ""), "Follower", Icons.Filled.Person),
     )
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun UserWindow(navController: NavHostController) {
+fun UserWindow(navController: NavHostController, viewModel: EbayViewModel) {
+    val userState by viewModel.userWindowState.collectAsState()
+
+    if (userState == null)
+        userWindowPlaceholder()
+    else
+        UserWindowContent(navController, viewModel, userState!!)
+}
+
+@Composable
+fun UserWindowContent(
+    navController: NavHostController,
+    viewModel: EbayViewModel,
+    userState: UserWindowData
+) {
 
     LazyColumn(
         Modifier
@@ -45,43 +66,46 @@ fun UserWindow(navController: NavHostController) {
 
         ) {
         item {
-            UserCard()
+            UserCard(userState.user)
             Spacer(modifier = Modifier.height(10.dp))
         }
-        items(15){
-            SearchItem(navController = navController)
+        items(userState.user_adds) {
+            SearchItem(navController = navController, item = it, viewModel = viewModel)
         }
-    }
 
+    }
 }
 
+
 @Composable
-fun UserCard() {
+fun UserCard(user: User) {
     WhiteCardWithPadding() {
 
         Column(
             Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            HisInitialCircle(text = "NÜ", size = "lg")
-            MediumBoldTitle(text = "Nesrin Ünal")
-            MediumLightText(text = "Private Anbieter - Aktiv seit 28.03.20")
+            HisInitialCircle(
+                text = user.user_name.substring(0 until 1),
+                size = "lg"
+            )
+            MediumBoldTitle(text = user.user_name)
+            MediumLightText(text = user.user_type + " - " + user.active_since)
             FollowButton()
             Row(Modifier.horizontalScroll(rememberScrollState())) {
-                for (it in getRatingData()) {
-
-
-                    Column(
-                        Modifier.width(80.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        RatingIcon(icon = it.icon, size = 60)
-                        Spacer(modifier = Modifier.height(10.dp))
-                        SmallLightText(text = it.name1)
-                        SmallLightLabel(text = it.name2)
-                    }
+                for (it in getRatingData(user)) {
+                    if(it.name1.isNotBlank()) {
+                        Column(
+                            Modifier.width(80.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            RatingIcon(icon = it.icon, size = 60)
+                            Spacer(modifier = Modifier.height(10.dp))
+                            SmallLightText(text = it.name1)
+                            SmallLightLabel(text = it.name2)
+                        }
 //                   Spacer(modifier = Modifier.width(10.dp))
-
+                    }
                 }
             }
         }
@@ -115,19 +139,19 @@ fun RatingIcon(icon: ImageVector, size: Int = 55) {
 
 }
 
-
-@Preview
-@Composable
-fun ShowAddWindow() {
-    val navController = rememberNavController()
-    EbayKleinanzeigenZakirTheme() {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            UserWindow(navController)
-
-        }
-
-    }
-}
+//
+//@Preview
+//@Composable
+//fun ShowAddWindow() {
+//    val navController = rememberNavController()
+//    EbayKleinanzeigenZakirTheme() {
+//        Surface(
+//            modifier = Modifier.fillMaxSize(),
+//            color = MaterialTheme.colorScheme.background
+//        ) {
+//            UserWindow(navController, viewModel)
+//
+//        }
+//
+//    }
+//}

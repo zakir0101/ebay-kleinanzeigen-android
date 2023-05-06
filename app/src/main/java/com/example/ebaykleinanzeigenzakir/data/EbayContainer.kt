@@ -9,13 +9,16 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
+
+
 interface EbayContainer {
     val ebayRepository : EbayRepository
 }
 
+
 class DefaultEbayContainer(sharedPref: SharedPreferences) :EbayContainer{
 
-    private  val BASE_URL = "http://192.168.151.149:5000"
+    private  val BASE_URL = "http://192.168.137.150:5000"
 
 
     private val okHttpClient = OkHttpClient().newBuilder()

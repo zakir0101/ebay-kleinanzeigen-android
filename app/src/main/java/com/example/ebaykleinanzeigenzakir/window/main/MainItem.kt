@@ -1,15 +1,18 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package com.example.ebaykleinanzeigenzakir
+package com.example.ebaykleinanzeigenzakir.window.main
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -17,39 +20,56 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.ebaykleinanzeigenzakir.EbayViewModel
+import com.example.ebaykleinanzeigenzakir.MainItemData
 import kotlinx.coroutines.launch
 
 
 @Composable
-fun MainItem(navController: NavHostController, item: MainItemData) {
+fun MainItem(navController: NavHostController, item: MainItemData, viewModel: EbayViewModel) {
     val scope = rememberCoroutineScope()
     Card(
         modifier = Modifier
+            .shadow(2.dp, ambientColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),shape= RoundedCornerShape(2))
             .padding(0.dp)
-            .width(150.dp)
-            .clickable { scope.launch { navController.navigate("add") }  },
-        shape = RoundedCornerShape(0),
-        elevation = CardDefaults.cardElevation(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            .width(170.dp)
+            .clickable {
+                viewModel.activeAddLink = item.url_link
+                viewModel.getAddData()
+                navController.navigate("add")
+            },
+        border =BorderStroke(0.5.dp,MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)),
+//        elevation = CardDefaults.cardElevation(2.dp,) ,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface,),
+        shape = RoundedCornerShape(2)
     ) {
         Column() {
 
-            Box(modifier = Modifier
-                .height(130.dp)
-                .fillMaxWidth() , contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .height(130.dp)
+                    .fillMaxWidth(), contentAlignment = Alignment.Center
+            ) {
 
-                var loading by remember { mutableStateOf(true) }
-                val modifier = if (loading) Modifier.size(48.dp) else Modifier.fillMaxSize()
-
+                var loaded by remember { mutableStateOf(false) }
                 AsyncImage(
                     model = ImageRequest.Builder(context = LocalContext.current)
                         .data(item.image_link).crossfade(true).build(),
-                    modifier = modifier,
+                    modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.FillBounds,
-                    placeholder = painterResource(id = R.drawable.camera),
-                    onSuccess = { loading = false },
-                            contentDescription = null
+
+                    onSuccess = { loaded = true },
+                    contentDescription = null
                 )
+                if (!loaded) {
+                    Icon(
+                        imageVector = Icons.Filled.PhotoCamera,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+
+                    )
+                }
 
             }
             Column(modifier = Modifier.padding(top = 5.dp, start = 10.dp)) {

@@ -37,26 +37,46 @@ fun EbayAppbarBoth(
     scrollBehavior: TopAppBarScrollBehavior,
     navController: NavHostController,
     darkMode: Boolean,
+    viewModel: EbayViewModel,
 
     ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val current = navBackStackEntry?.destination?.route
 
-    val showSearchbar = current !in arrayOf("publish", "conversation", "setting")
 
     Column() {
 
-        if (current == "conversation" || current == "publish" || current == "setting")
-            EbayAppbarTopMedium(switchDarkMode, darkMode, navDrawerState, current, scrollBehavior)
-        else if (current == "message"  || current == "user" || current == "login")
-            EbayAppbarTopSmall(switchDarkMode, darkMode, current, navController,navDrawerState)
-        else if(current == "main" || current == "search" )
+        if (current == "conversation" || current == "publish" || current == "setting" || current == "myadd")
+            EbayAppbarTopMedium(
+                switchDarkMode,
+                darkMode,
+                navDrawerState,
+                current,
+                scrollBehavior,
+                viewModel
+            )
+        else if (current == "message" || current == "user" || current == "login" || current == "sendMessage")
+            EbayAppbarTopSmall(
+                switchDarkMode,
+                darkMode,
+                current,
+                navController,
+                navDrawerState,
+                viewModel
+            )
+        else if (current == "internet")
+            EbayAppbarCenteredError(
+                scrollBehavior,
+                viewModel
+            )
+        else if (current == "main" || current == "search")
             EbayAppbarTopCentered(
                 switchDarkMode,
                 darkMode,
                 navDrawerState,
                 true,
-                scrollBehavior
+                scrollBehavior,
+                viewModel
             )
 
         if (current == "search") {
@@ -64,6 +84,7 @@ fun EbayAppbarBoth(
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,23 +94,42 @@ fun EbayAppbarTopSmall(
     current: String,
     navController: NavHostController,
     navDrawerState: DrawerState,
+    viewModel: EbayViewModel,
 ) {
     TopAppBar(
-        title = { when (current ){
-           "message" -> MessageWindowTitle()
-            "user" -> UserWindowTitle()
-            "login" -> Text("Login",style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onPrimary)
-        } },
-        navigationIcon = { if (current=="login") EbayNavigationIcon(navDrawerState) else
-                                EbayNavigateBackIcon(navController) },
+        title = {
+            when (current) {
+                "message" -> MessageWindowTitle(viewModel, navController)
+                "user" -> UserWindowTitle(viewModel)
+                "login" -> LoginWindowTitle()
+                "sendMessage" -> SendMessageTitle()
+            }
+        },
+        navigationIcon = {
+            if (current == "login") EbayNavigationIcon(navDrawerState) else
+                EbayNavigateBackIcon(navController)
+        },
         actions = { SwitchDarkModeIcon(switchDarkMode, darkMode) },
         colors = getCenteredTopAppbarColor()
     )
 
 
+}
 
+@Composable
+fun SendMessageTitle() {
+    Text(
+        "Nachricht schreiben", style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onPrimary
+    )
+}
 
+@Composable
+fun LoginWindowTitle() {
+    Text(
+        "Login", style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onPrimary
+    )
 }
 
 
@@ -99,13 +139,17 @@ fun EbayAppbarTopMedium(
     switchDarkMode: () -> Unit, darkMode: Boolean,
     navDrawerState: DrawerState,
     current: String,
-    scrollBehavior: TopAppBarScrollBehavior
+    scrollBehavior: TopAppBarScrollBehavior,
+    viewModel: EbayViewModel
 ) {
-    val title: String = when ( current) {
-        "conversation" ->  "Nachrichten"
+    val title: String = when (current) {
+        "conversation" -> "Nachrichten"
         "publish" -> "Anzeige erstellen"
         "setting" -> "Einstellung"
-        else -> {""}
+        "myadd"  -> "Meins"
+        else -> {
+            ""
+        }
     }
     MediumTopAppBar(
         scrollBehavior = scrollBehavior,
@@ -118,20 +162,20 @@ fun EbayAppbarTopMedium(
 }
 
 
-
 @Composable
 fun AddWindowTopAppBar(
     appbarColorAlpha: Float,
     navController: NavHostController,
-    switchDarkMode: () -> Unit,
-    darkMode: Boolean
+    viewModel: EbayViewModel
 ) {
+    val addWindowState by viewModel.addWindowState.collectAsState()
+    val title = if (addWindowState != null) addWindowState!!.title else "Loading"
     TopAppBar(
 
         modifier = Modifier.zIndex(2f),
-        title = { TitleText(title = if (appbarColorAlpha < 1f) "" else "Original Samsumg Boo..") },
+        title = { TitleText(title = if (appbarColorAlpha < 1f) "" else title) },
         navigationIcon = { EbayNavigateBackIcon(navController) },
-        actions = { SwitchDarkModeIcon(switchDarkMode, darkMode) },
+        actions = { SwitchDarkModeIcon(viewModel.switchDarkMode, viewModel.darkMode) },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primary.copy(
                 alpha = appbarColorAlpha
@@ -143,6 +187,17 @@ fun AddWindowTopAppBar(
     )
 }
 
+@Composable
+fun EbayAppbarCenteredError(scrollBehavior: TopAppBarScrollBehavior, viewModel: EbayViewModel) {
+    CenterAlignedTopAppBar(
+        scrollBehavior = scrollBehavior,
+        title = {
+            Text("Network Error", color = Color.White,style = MaterialTheme.typography.titleMedium)
+        },
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Red)
+
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -151,7 +206,8 @@ fun EbayAppbarTopCentered(
     darkMode: Boolean,
     navDrawerState: DrawerState,
     showSearchBar: Boolean,
-    scrollBehavior: TopAppBarScrollBehavior
+    scrollBehavior: TopAppBarScrollBehavior,
+    viewModel: EbayViewModel
 ) {
     CenterAlignedTopAppBar(
         scrollBehavior = scrollBehavior,
@@ -168,33 +224,67 @@ fun EbayAppbarTopCentered(
 
 
 @Composable
-fun UserWindowTitle() {
-    Column(
-        Modifier) {
-        Text(text = "Nesrin Ünal", color = MaterialTheme.colorScheme.onPrimary,
-            style = MaterialTheme.typography.titleLarge)
-        Text(text = "38 Anzeigen online - 143 Anzeigen gesamt",
-            color = MaterialTheme.colorScheme.onPrimary,
-            style = MaterialTheme.typography.bodyMedium)
+fun UserWindowTitle(viewModel: EbayViewModel) {
+    val userState by viewModel.userWindowState.collectAsState()
+    if (userState == null)
+        LoadingTitle()
+    else {
+        Column(
+            Modifier
+        ) {
+            Text(
+                text = userState!!.user.user_name, color = MaterialTheme.colorScheme.onPrimary,
+                style = MaterialTheme.typography.titleLarge
+            )
+            Text(
+                text = userState!!.user.user_ad_number,
+                color = MaterialTheme.colorScheme.onPrimary,
+                style = MaterialTheme.typography.bodyMedium
+            )
 
+        }
     }
 }
 
 @Composable
-fun MessageWindowTitle() {
-    Row(Modifier, verticalAlignment = Alignment.CenterVertically) {
-        ConversationImage(size = 45)
-        Column(
-            Modifier
-                .weight(1f)
-                .padding(start = 12.dp) ) {
-            Text(text = "Mantel in sehr guten Zustand", color = MaterialTheme.colorScheme.onPrimary,
-                    style = MaterialTheme.typography.titleSmall)
-            Text(text = "Katja", color = MaterialTheme.colorScheme.onPrimary,
-                    style = MaterialTheme.typography.bodySmall)
+fun MessageWindowTitle(viewModel: EbayViewModel, navController: NavHostController) {
+    val messageStat by viewModel.activeConversation.collectAsState()
 
+    if (messageStat == null)
+        LoadingTitle()
+    else {
+        Row(Modifier.clickable {
+            viewModel.activeAddLink = "/zur-anzeige/" + messageStat!!.adId
+            viewModel.getAddData()
+            navController.navigate("add")
+        }, verticalAlignment = Alignment.CenterVertically) {
+            ConversationImage(size = 45, messageStat!!)
+            Column(
+                Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+            ) {
+                Text(
+                    text = messageStat!!.adTitle, color = MaterialTheme.colorScheme.onPrimary,
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = viewModel.getHisName(messageStat!!),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+            }
         }
     }
+}
+
+@Composable
+fun LoadingTitle() {
+    Text(
+        "Loading...", style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onPrimary
+    )
 }
 
 
@@ -400,7 +490,7 @@ fun SearchBar() {
                     unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                     containerColor = MaterialTheme.colorScheme.background,
 
-                ),
+                    ),
 
 
                 textStyle = MaterialTheme.typography.bodyMedium,

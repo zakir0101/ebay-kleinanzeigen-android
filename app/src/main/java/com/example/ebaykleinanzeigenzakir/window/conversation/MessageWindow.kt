@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.IconButton
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
@@ -16,64 +15,43 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
+import com.example.ebaykleinanzeigenzakir.Conversation
+import com.example.ebaykleinanzeigenzakir.EbayViewModel
 import com.example.ebaykleinanzeigenzakir.HisInitialCircle
-import com.example.ebaykleinanzeigenzakir.ui.theme.EbayKleinanzeigenZakirTheme
+import com.example.ebaykleinanzeigenzakir.Message
 import kotlinx.coroutines.launch
 
-class Message(val msg: String, val isMe: Boolean)
+@Composable
+fun MessageWindow(navController: NavHostController, viewModel: EbayViewModel) {
+    val activeConversation by viewModel.activeConversation.collectAsState()
 
-fun getMessages(): List<Message> {
-    return listOf<Message>(
-        Message("hallo", true),
-        Message("Hallo", false),
-        Message("Wie geht es dir", true),
-        Message("gut , danke , und dir", false),
-        Message("auch gut , hey wollte dich fragen ob du mir bei eine Sache Helfen kannst", true),
-        Message("ja gerne", false),
-        Message("okay ", true),
-        Message(
-            "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et  ",
-            false
-        ),
-        Message("kein Problem  ", true),
-        Message("also hast du Zeit  ", false),
-        Message(
-            "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore e",
-            true
-        ),
-        Message("lorem  ", false),
-        Message("kein Problem  ", true),
-        Message("also hast du Zeit  ", false),
-        Message(
-            "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore e",
-            true
-        ),
-        Message("letzte Nachricht  ", false),
+    if(activeConversation == null)
+        MessageWindowPlaceholder()
+    else
+        MessageWindowContent(navController,viewModel,activeConversation!!)
 
-        )
 }
 
 @Composable
-fun MessageWindow(navController: NavHostController) {
-    val messages = getMessages()
+fun MessageWindowContent(
+    navController: NavHostController,
+    viewModel: EbayViewModel,
+    activeConversation: Conversation
+) {
+
     val scope = rememberCoroutineScope()
     val scrollState = rememberLazyListState()
 
     Column(Modifier.fillMaxSize()) {
-
-
+        val messages = activeConversation.messages
         LaunchedEffect(messages.size) {
             scope.launch {
                 scrollState.animateScrollToItem(messages.size - 1)
             }
         }
-
-
-
         LazyColumn(
             state = scrollState,
             modifier = Modifier
@@ -85,11 +63,11 @@ fun MessageWindow(navController: NavHostController) {
             item {
                 Spacer(modifier = Modifier.height(25.dp))
             }
-            itemsIndexed(items = getMessages()) { index, it ->
-                if (it.isMe)
-                    MyMessage(it.msg)
+            itemsIndexed(items = messages) { index, it ->
+                if (it.boundness=="OUTBOUND")
+                    MyMessage(it)
                 else
-                    HisMessage(msg = it.msg, navController)
+                    HisMessage(navController,it,viewModel,activeConversation)
 
                 Spacer(modifier = Modifier.height(15.dp))
                 if (index == (messages.size - 1))
@@ -98,15 +76,14 @@ fun MessageWindow(navController: NavHostController) {
         }
 
 
-        SendButton()
+        SendButton(viewModel)
 
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SendButton() {
-    var value by remember { mutableStateOf("") }
+fun SendButton(viewModel: EbayViewModel = viewModel(factory=EbayViewModel.Factory)) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -114,7 +91,8 @@ fun SendButton() {
             .padding(10.dp)
     ) {
         OutlinedTextField(
-            value = value, onValueChange = { value = it },
+            value = viewModel.messageWindowMessage,
+            onValueChange = { viewModel.messageWindowMessage = it },
             Modifier.weight(1f),
             placeholder = {
                 Text(
@@ -129,13 +107,17 @@ fun SendButton() {
                 cursorColor = MaterialTheme.colorScheme.primary,
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedBorderColor = MaterialTheme.colorScheme.onBackground,
+
+            ),
+            enabled = !viewModel.addWindowSending,
+
+
             )
-        )
         Spacer(modifier = Modifier.width(10.dp))
-        IconButton(onClick = {}) {
+        IconButton(onClick = { viewModel.sendMessageFromMessageBox() } ) {
             Icon(
                 imageVector = Icons.Default.Send, contentDescription = null,
-                tint = if (value.length > 1) MaterialTheme.colorScheme.primary
+                tint = if (viewModel.messageWindowMessage.length > 1 && !viewModel.messageWindowSending) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onBackground
             )
         }
@@ -144,17 +126,24 @@ fun SendButton() {
 
 
 @Composable
-fun HisMessage(msg: String, navController: NavHostController) {
+fun HisMessage(
+    navController: NavHostController,
+    message: Message,
+    viewModel: EbayViewModel,
+    activeConversation: Conversation
+) {
     val scope = rememberCoroutineScope()
-    val cardRadius: Int = 20
+    val cardRadius: Int = 15
     Row(
         Modifier
             .fillMaxWidth()
             .padding(start = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        HisInitialCircle(text = "K", size = "sm", modifier = Modifier.clickable {
+        HisInitialCircle(text =viewModel.getHisInitials(activeConversation) , size = "sm", modifier = Modifier.clickable {
             scope.launch {
+                viewModel.activeUserLink = viewModel.getHisLink(activeConversation)
+                viewModel.getUserData()
                 navController.navigate("user")
             }
         })
@@ -166,7 +155,7 @@ fun HisMessage(msg: String, navController: NavHostController) {
         ) {
 
             Card(
-                Modifier,
+                Modifier.padding(),
                 shape = RoundedCornerShape(
                     topEndPercent = cardRadius,
                     topStartPercent = cardRadius,
@@ -178,14 +167,14 @@ fun HisMessage(msg: String, navController: NavHostController) {
                 )
             ) {
                 Text(
-                    msg,
+                    message.textShort,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(10.dp, 12.dp),
+                    modifier = Modifier.padding(18.dp, 12.dp),
                 )
             }
             Text(
-                "17:40 5 Oct 2022", style = MaterialTheme.typography.bodySmall,
+                message.readableDate, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(top = 2.dp)
             )
@@ -194,8 +183,8 @@ fun HisMessage(msg: String, navController: NavHostController) {
 }
 
 @Composable
-fun MyMessage(msg: String) {
-    val cardRadius: Int = 20
+fun MyMessage(msg: Message) {
+    val cardRadius: Int = 15
 
     Column(
         Modifier
@@ -215,14 +204,14 @@ fun MyMessage(msg: String) {
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Text(
-                msg,
+                msg.textShort,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.padding(10.dp, 12.dp),
+                modifier = Modifier.padding(18.dp, 12.dp),
             )
         }
         Text(
-            "17:40 5 Oct 2022", style = MaterialTheme.typography.bodySmall,
+            msg.readableDate, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(top = 2.dp)
         )
@@ -230,20 +219,20 @@ fun MyMessage(msg: String) {
     }
 }
 
-
-@Preview
-@Composable
-fun ShowMessageWindow() {
-    val navController = rememberNavController()
-    val setCurrent: (String) -> Unit = { s: String -> { var a = s } }
-    EbayKleinanzeigenZakirTheme() {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            MessageWindow(navController)
-
-        }
-
-    }
-}
+//
+//@Preview
+//@Composable
+//fun ShowMessageWindow() {
+//    val navController = rememberNavController()
+//    val setCurrent: (String) -> Unit = { s: String -> { var a = s } }
+//    EbayKleinanzeigenZakirTheme() {
+//        Surface(
+//            modifier = Modifier.fillMaxSize(),
+//            color = MaterialTheme.colorScheme.background
+//        ) {
+//            MessageWindow(navController, viewModel)
+//
+//        }
+//
+//    }
+//}

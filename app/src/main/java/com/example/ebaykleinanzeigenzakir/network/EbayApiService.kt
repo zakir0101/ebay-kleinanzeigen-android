@@ -74,7 +74,7 @@ interface EbayService {
      *           Search
      ******************************************* */
 
-    @GET("search/{search_word}/{search_Token}/api")
+    @GET("search/{search_word}/{search_token}/api")
     suspend fun getSearchResults(
         @Path("search_word") searchWord: String,
         @Path("search_token") searchToken: String,
@@ -86,8 +86,12 @@ interface EbayService {
      *           Conversation
      ******************************************* */
 
-    @GET("conversation")
-    suspend fun getConversation(@Query("user_id") userId: String): Response<ConversationWindowData>
+    @GET("conversations")
+    suspend fun getConversation(
+        @Query("user_id") userId: String,
+        @Query("page") page: String,
+        @Query("size") size :String
+    ): Response<ConversationWindowData>
 
 
     /******************************************
@@ -118,14 +122,11 @@ interface EbayService {
         @Query("title") title: String, @Query("price") price: String,
         @Query("zip") zip: String, @Query("city_code") city_code: String,
         @Query("description") description: String, @Query("contact_name") contact_name: String
-    ):Response<PublishAddResponse>
+    ): Response<PublishAddResponse>
 
 
     @GET("check/add")
-    suspend fun checkAdd(
-        @Query("add_id") add_id: String, @Query("page") page: String,
-        @Query("size") size: String
-    ):Response<PublishAddResponse>
+    suspend fun checkAdd(@Query("add_id") add_id: String): Response<PublishAddResponse>
 
 
     /******************************************
