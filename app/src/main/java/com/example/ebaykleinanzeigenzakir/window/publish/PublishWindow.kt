@@ -26,11 +26,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.PopupProperties
 import androidx.navigation.NavHostController
-import com.example.ebaykleinanzeigenzakir.City
-import com.example.ebaykleinanzeigenzakir.EbayViewModel
-import com.example.ebaykleinanzeigenzakir.PrimaryButton
-import com.example.ebaykleinanzeigenzakir.WhiteCardWithPadding
+import com.example.ebaykleinanzeigenzakir.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun PublishWindow(navController: NavHostController, viewModel: EbayViewModel) {
@@ -46,10 +46,54 @@ fun PublishWindow(navController: NavHostController, viewModel: EbayViewModel) {
 @Composable
 fun ErrorWindow() {
 
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center){
+        Text(text =  "Error Publishing Add",
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodyLarge)
+    }
+
 }
 
 @Composable
 fun WaitingWindow(navController: NavHostController, viewModel: EbayViewModel) {
+    val scope = rememberCoroutineScope()
+    val checkState by viewModel.checkResponse.collectAsState()
+    var status by remember { mutableStateOf("") }
+    LaunchedEffect(key1 = checkState) {
+        scope.launch {
+//            for (i in 1..20) {
+            withContext(Dispatchers.IO) {
+
+                if (checkState != null &&
+                    !checkState!!.state.lowercase().contains("process")
+                ) {
+                    clearParams(viewModel)
+                    viewModel.publishCurrent = "form"
+                    navController.navigate("myadd")
+                } else {
+                    viewModel.checkAdd()
+                }
+//                Thread.sleep(7000)
+            }
+//            }
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center){
+        Text(text = if (checkState == null) "Sending..." else checkState!!.state,
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.bodyLarge)
+    }
+
+}
+
+fun clearParams(viewModel: EbayViewModel) {
+    viewModel.publishFormState.value = PublishFormData("", "", "", "")
+    viewModel.publishResponse.value = null
+    viewModel.checkResponse.value = null
+    viewModel.formDataCity.value = deutschland
+    viewModel.publishFormError = ""
+    viewModel.addId = null
 
 }
 
@@ -68,7 +112,9 @@ fun PublishForm(viewModel: EbayViewModel) {
         val modifier = Modifier.fillMaxWidth()
 
         val formState by viewModel.publishFormState.collectAsState()
-
+        //**********************************************************
+        //******+              title and categories
+        //**********************************************************
         WhiteCardWithPadding(modifier = Modifier.padding(extPadding.dp)) {
             val categories = listOf<String>("Nachhlife", "andere Dienstleistung", "zu Verschenken")
             val setTitle =
@@ -83,6 +129,10 @@ fun PublishForm(viewModel: EbayViewModel) {
             EbayInputDropdown(Modifier.fillMaxWidth(), label = "Kategorie", list = categories)
         }
 
+
+        //**********************************************************
+        //******+              description
+        //**********************************************************
         WhiteCardWithPadding(Modifier.padding(extPadding.dp)) {
 
             val setDescription =
@@ -96,6 +146,10 @@ fun PublishForm(viewModel: EbayViewModel) {
             InputHint(text = "Beschreibe heir dein Inserat (min 10 Zeichen, max 4000)")
         }
 
+
+        //**********************************************************
+        //******+              Price
+        //**********************************************************
         WhiteCardWithPadding(Modifier.padding(extPadding.dp)) {
             val priceType = listOf<String>("Fest Preis", "VB", "zu Verschenken")
 
@@ -106,7 +160,7 @@ fun PublishForm(viewModel: EbayViewModel) {
                         if (s.toDoubleOrNull() != null) {
                             viewModel.publishFormState.update { data -> data.copy(price = s) }
                         }
-                        }
+                    }
                 EbayInputField(
                     Modifier.weight(1f),
                     label = "Preis",
@@ -117,12 +171,18 @@ fun PublishForm(viewModel: EbayViewModel) {
             }
         }
 
+
+        //**********************************************************
+        //******+              cityname and zip
+        //**********************************************************
+
         WhiteCardWithPadding(Modifier.padding(extPadding.dp)) {
             val cities by viewModel.citiesList.collectAsState()
             val citiesOrEmpty = if (cities != null) cities!! else listOf<City>()
 
 
             var cityName by remember { mutableStateOf("") }
+
             val onSelectCity = { c: City ->
                 val zip = c.name.split(" ")[0].trim()
                 cityName = c.name.split(" ")[1].trim()
@@ -132,7 +192,7 @@ fun PublishForm(viewModel: EbayViewModel) {
             }
 
             val setCityAndSearch = { s: String ->
-                if (s.toIntOrNull() != null ) {
+                if (s.toIntOrNull() != null) {
                     viewModel.citySearch = s
                     viewModel.getCities()
                 }
@@ -154,10 +214,10 @@ fun PublishForm(viewModel: EbayViewModel) {
                     setValue = {})
             }
 
-            val setName:(String)->Unit = { s: String ->
-                    viewModel.publishFormState.update { state ->
-                        state.copy(contact_name = s)
-                    }
+            val setName: (String) -> Unit = { s: String ->
+                viewModel.publishFormState.update { state ->
+                    state.copy(contact_name = s)
+                }
             }
             EbayInputField(
                 Modifier.fillMaxWidth(),
@@ -167,9 +227,14 @@ fun PublishForm(viewModel: EbayViewModel) {
             )
 
         }
-        Text(viewModel.publishFormError,color=Color.Red,style=MaterialTheme.typography.bodyMedium)
+        Text(
+            viewModel.publishFormError,
+            color = Color.Red,
+            style = MaterialTheme.typography.bodyMedium
+        )
+
         PrimaryButton(
-            onClick = {viewModel.publishAdd()} ,
+            onClick = { viewModel.publishAdd() },
             text = "Anzeige aufgeben",
             modifier = Modifier
                 .fillMaxWidth()
@@ -353,7 +418,7 @@ fun EbayCityDropDownMenu(
         ),
         onDismissRequest = onDismissRequest2,
         modifier = Modifier
-            .width(with(LocalDensity.current) { textfieldSize.width.toDp()*3 })
+            .width(with(LocalDensity.current) { textfieldSize.width.toDp() * 3 })
             .background(MaterialTheme.colorScheme.surface)
 
     ) {

@@ -198,7 +198,8 @@ data class PublishFormData(
 data class PublishAddResponse(
     val state : String,
     val add_id : String = "",
-    val html : String = ""
+    val html : String = "",
+    val link : String = ""
 )
 /******************************************
  *           Setting Window

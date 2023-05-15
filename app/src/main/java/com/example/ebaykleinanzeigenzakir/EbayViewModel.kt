@@ -190,7 +190,7 @@ class EbayViewModel(private val ebayRepository: EbayRepository) : ViewModel() {
                 addWindowSendMessageResponse.value = result
                 checkNullability(funName, result)
                 addWindowSending = false
-                if(result != null && result.status.lowercase()=="ok") {
+                if (result != null && result.status.lowercase() == "ok") {
                     addWindowMessage = ""
                     addWindowContactName = ""
                 }
@@ -291,7 +291,7 @@ class EbayViewModel(private val ebayRepository: EbayRepository) : ViewModel() {
      *           Conversation Window
      ******************************************* */
     val conversationWindowState = MutableStateFlow<ConversationWindowData?>(null)
-    var conversationSize  =  (100)
+    var conversationSize = (100)
     var conversationPage = 0
 
     fun getConversation() {
@@ -301,8 +301,11 @@ class EbayViewModel(private val ebayRepository: EbayRepository) : ViewModel() {
         val funName = "getConversation"
         viewModelScope.launch {
             try {
-                val result = ebayRepository.getConversationData(loginState.value!!.user_id
-                    ,conversationPage.toString(),conversationSize.toString())
+                val result = ebayRepository.getConversationData(
+                    loginState.value!!.user_id,
+                    conversationPage.toString(),
+                    conversationSize.toString()
+                )
                 conversationWindowState.value = result
                 checkNullability(funName, result)
             } catch (e: IOException) {
@@ -312,22 +315,26 @@ class EbayViewModel(private val ebayRepository: EbayRepository) : ViewModel() {
 
     }
 
-    fun getHisLink(con:Conversation):String{
-        val hisId = if(con.role == "Seller") con.userIdBuyer else con.userIdSeller
+    fun getHisLink(con: Conversation): String {
+        val hisId = if (con.role == "Seller") con.userIdBuyer else con.userIdSeller
         return "/s-bestandsliste.html?userId=" + hisId
     }
-    fun getHisName(con:Conversation):String{
-        return if(con.role == "Seller") con.buyerName else con.sellerName
+
+    fun getHisName(con: Conversation): String {
+        return if (con.role == "Seller") con.buyerName else con.sellerName
 
     }
-    fun getMyName(con:Conversation):String{
-        return if(con.role == "Seller") con.sellerName else con.buyerName
+
+    fun getMyName(con: Conversation): String {
+        return if (con.role == "Seller") con.sellerName else con.buyerName
     }
-    fun getHisInitials(con:Conversation):String{
-        return if(con.role == "Seller") con.buyerInitials else con.sellerInitials
+
+    fun getHisInitials(con: Conversation): String {
+        return if (con.role == "Seller") con.buyerInitials else con.sellerInitials
     }
-    fun getMyInitials(con:Conversation):String{
-        return if(con.role == "Seller") con.sellerInitials else con.buyerInitials
+
+    fun getMyInitials(con: Conversation): String {
+        return if (con.role == "Seller") con.sellerInitials else con.buyerInitials
     }
 
     /******************************************
@@ -359,9 +366,11 @@ class EbayViewModel(private val ebayRepository: EbayRepository) : ViewModel() {
     fun sendMessageFromMessageBox() {
         val funName = "sendMessageFromMessageBox"
 
-        if (loginState.value == null || !loginState.value!!.is_logged || activeConversationId == null || messageWindowMessage.isBlank())
-        {
-            Log.e(funName, "parameter not suffeciant for method : ${activeConversationId.toString()}")
+        if (loginState.value == null || !loginState.value!!.is_logged || activeConversationId == null || messageWindowMessage.isBlank()) {
+            Log.e(
+                funName,
+                "parameter not suffeciant for method : ${activeConversationId.toString()}"
+            )
             return
         }
         messageWindowSending = true
@@ -376,7 +385,7 @@ class EbayViewModel(private val ebayRepository: EbayRepository) : ViewModel() {
                 messageWindowResoponse.value = result
                 checkNullability(funName, result)
                 messageWindowSending = false
-                if(result != null && result.status.lowercase()=="ok") {
+                if (result != null && result.status.lowercase() == "ok") {
                     messageWindowMessage = ""
                     activeConversation.value = null
                     getConversation()
@@ -395,8 +404,9 @@ class EbayViewModel(private val ebayRepository: EbayRepository) : ViewModel() {
     val publishFormState = MutableStateFlow<PublishFormData>(PublishFormData("", "", "", ""))
     val formDataCity = MutableStateFlow<City>(deutschland)
     val publishResponse = MutableStateFlow<PublishAddResponse?>(null)
-    var publishCurrent:String by mutableStateOf("form")
+    var publishCurrent: String by mutableStateOf("form")
     var publishFormError by mutableStateOf("")
+    var checkResponse = MutableStateFlow<PublishAddResponse?>(null)
     fun publishAdd() {
         val data = publishFormState.value
         if (data.title.isBlank() || data.title.length < 10) {
@@ -422,7 +432,8 @@ class EbayViewModel(private val ebayRepository: EbayRepository) : ViewModel() {
         }
         if (loginState.value == null || !loginState.value!!.is_logged ||
             formDataCity.value == null || data.contact_name.isBlank() || data.description.length < 10
-            || data.title.length < 10 || data.price.toDoubleOrNull() == null )
+            || data.title.length < 10 || data.price.toDoubleOrNull() == null
+        )
             return
         val funName = "publishAdd"
         viewModelScope.launch {
@@ -430,13 +441,23 @@ class EbayViewModel(private val ebayRepository: EbayRepository) : ViewModel() {
                 val result = ebayRepository.publishAdd(publishFormState.value, formDataCity.value!!)
                 publishResponse.value = result
                 checkNullability(funName, result)
+                if (result != null) {
+                    if (result.state == "OK") {
+                        addId = result.add_id
+                        publishCurrent = "waiting"
+                        checkAdd()
+
+                    } else {
+                        publishCurrent = "error"
+                    }
+                }
             } catch (e: IOException) {
                 onIOException(funName, e)
             }
         }
     }
 
-    fun checkAdd(){
+    fun checkAdd() {
         if (loginState.value == null || !loginState.value!!.is_logged || addId == null)
             return
         val funName = "checkAdd"
@@ -454,10 +475,10 @@ class EbayViewModel(private val ebayRepository: EbayRepository) : ViewModel() {
     /******************************************
      *           My Add
      ******************************************* */
-    fun getMyAdd(){
-        if (loginState.value == null || !loginState.value!!.is_logged )
+    fun getMyAdd() {
+        if (loginState.value == null || !loginState.value!!.is_logged)
             return
-        activeUserLink = "/s-bestandsliste.html?userId="+loginState.value!!.user_id
+        activeUserLink = "/s-bestandsliste.html?userId=" + loginState.value!!.user_id
         getUserData()
     }
 
@@ -467,7 +488,7 @@ class EbayViewModel(private val ebayRepository: EbayRepository) : ViewModel() {
      ******************************************* */
     val settingState = MutableStateFlow<SettingWindowData?>(null)
     fun getSetting() {
-        if (loginState.value == null || !loginState.value!!.is_logged )
+        if (loginState.value == null || !loginState.value!!.is_logged)
             return
         val funName = "settingState"
         viewModelScope.launch {
