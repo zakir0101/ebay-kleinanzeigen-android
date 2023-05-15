@@ -18,7 +18,7 @@ interface EbayContainer {
 
 class DefaultEbayContainer(sharedPref: SharedPreferences) :EbayContainer{
 
-    private  val BASE_URL = "http://192.168.137.150:5000"
+    private  val BASE_URL = "https://ebay-zakir-1996.onrender.com/"
 
 
     private val okHttpClient = OkHttpClient().newBuilder()
